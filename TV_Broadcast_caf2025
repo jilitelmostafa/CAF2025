@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦁 خريطة تفاعلية - شركاء بث كأس أمم إفريقيا 2025 🇲🇦</title>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Cairo', Tahoma, Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        h1 { 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #map { 
+            height: 700px; 
+            width: 100%; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-box { 
+            width: 100%; 
+            padding: 18px 25px; 
+            font-size: 18px; 
+            border: 2px solid rgba(255,255,255,0.3); 
+            border-radius: 15px; 
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .search-box::placeholder {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #ffd93d;
+            box-shadow: 0 0 20px rgba(255,217,61,0.5);
+        }
+
+        #infoBox {
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+            color: white;
+            border-radius: 15px;
+            font-weight: 700;
+            text-align: center;
+            font-size: 16px;
+            display: none;
+        }
+
+        /* قائمة منسدلة لخلفيات الخريطة */
+        .map-layers-panel {
+            position: relative;
+        }
+
+        .map-layers-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: right;
+            box-shadow: 0 10px 30px rgba(76,175,80,0.4);
+            transition: all 0.3s;
+            font-family: 'Cairo', sans-serif;
+            margin-bottom: 15px;
+        }
+
+        .map-layers-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(76,175,80,0.5);
+        }
+
+        .map-layers-content {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            color: #333;
+            z-index: 1000;
+        }
+
+        .map-layers-content.show { display: block; }
+
+        .layer-item {
+            padding: 18px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .layer-item:hover {
+            background: #f0f8ff;
+            transform: translateX(-5px);
+        }
+
+        .layer-item:last-child { border-bottom: none; }
+
+        .layer-icon {
+            font-size: 24px;
+            margin-left: 15px;
+        }
+
+        .dropdown-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: right;
+            box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+            transition: all 0.3s;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .dropdown-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255,107,107,0.5);
+        }
+
+        .dropdown-content {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            max-height: 450px;
+            overflow-y: auto;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        .dropdown-content.show { display: block; }
+
+        .broadcaster-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .broadcaster-item:hover {
+            background: #f8f9ff;
+            transform: translateX(-5px);
+        }
+
+        .broadcaster-name { 
+            font-weight: 700; 
+            font-size: 18px;
+            color: #2c3e50;
+        }
+
+        .broadcaster-name::before {
+            content: '📺';
+            margin-left: 10px;
+        }
+
+        .broadcaster-info { 
+            color: #7f8c8d; 
+            font-size: 15px; 
+            margin-top: 5px;
+        }
+
+        .broadcaster-link { 
+            color: #ff6b6b; 
+            text-decoration: none; 
+            font-weight: 700; 
+            padding: 10px 20px; 
+            background: rgba(255,107,107,0.1); 
+            border-radius: 25px; 
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .broadcaster-link:hover { 
+            background: #ff6b6b; 
+            color: white; 
+        }
+
+        .legend { 
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            padding: 25px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .legend h3 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            margin: 12px 0; 
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .legend-color { 
+            width: 20px; 
+            height: 20px; 
+            border-radius: 50%; 
+            margin-left: 12px; 
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .channel-label {
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: white !important;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .morocco-logo {
+            font-family: 'Cairo', sans-serif;
+            font-weight: 900;
+            font-size: 14px;
+            color: #ffd93d !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            text-align: center;
+            pointer-events: none;
+            background: rgba(255,107,107,0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        /* أيقونة التبديل على الخريطة */
+        .leaflet-top.leaflet-right {
+            top: 80px !important;
+        }
+
+        .layer-toggle {
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255,107,107,0.4);
+            transition: all 0.3s;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .layer-toggle:hover {
+            transform: scale(1.1) rotate(180deg);
+            box-shadow: 0 12px 35px rgba(255,107,107,0.6);
+        }
+    </style>
+</head>
+<body>
+    <h1>🦁 خريطة شركاء بث كأس أمم إفريقيا 2025 🇲🇦</h1>
+    
+    <div class="panel">
+        <button class="dropdown-btn" id="broadcastersDropdown">
+            📺 جميع ناقلي البث (21 موقع)
+            <span style="float: left; transition: transform 0.3s;">▼</span>
+        </button>
+        <div class="dropdown-content" id="broadcastersList"></div>
+    </div>
+    
+    <div class="panel">
+        <div class="map-layers-panel">
+            <button class="map-layers-btn" id="mapLayersDropdown">
+                🗺️ اختر خلفية الخريطة
+                <span style="float: left; transition: transform 0.3s;">▼</span>
+            </button>
+            <div class="map-layers-content" id="mapLayersList"></div>
+        </div>
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 ابحث عن دولة أو ناقل بث...">
+        <div id="infoBox"></div>
+    </div>
+
+    <div id="map"></div>
+
+    
+    </div>
+
+    <script>
+        // الخريطة
+        const map = L.map('map', { center: [31.79, -7.09], zoom: 3 });
+        let currentBaseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        currentBaseLayer.addTo(map);
+        
+        // خلفيات الخريطة
+        const baseMaps = {
+            "🗺️ الخريطة العادية": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            "🌍 صور أقمار صناعية ESRI": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+            "⛰️ تضاريس ثلاثية الأبعاد": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}'),
+            "🏞️ خريطة طبيعية": L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+                subdomains: 'abcd', attribution: 'Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap'
+            }),
+            "🌐 خريطة HOT": L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png')
+        };
+
+        // أيقونة التبديل بين Google/OSM و ESRI
+        let isEsri = false;
+        const toggleButton = L.control({position: 'topright'});
+        toggleButton.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'layer-toggle');
+            div.innerHTML = '🛰️';
+            div.title = 'تبديل بين الخريطة العادية وصور الأقمار الصناعية';
+            div.onclick = function() {
+                if (isEsri) {
+                    map.removeLayer(currentBaseLayer);
+                    currentBaseLayer = baseMaps["🗺️ الخريطة العادية"];
+                    currentBaseLayer.addTo(map);
+                    div.innerHTML = '🛰️';
+                    isEsri = false;
+                } else {
+                    map.removeLayer(currentBaseLayer);
+                    currentBaseLayer = baseMaps["🌍 صور أقمار صناعية ESRI"];
+                    currentBaseLayer.addTo(map);
+                    div.innerHTML = '🗺️';
+                    isEsri = true;
+                }
+            };
+            return div;
+        };
+        toggleButton.addTo(map);
+
+        // البيانات
+        const moroccoHost = { name: 'المغرب', country: 'المملكة المغربية 🇲🇦', coords: [31.7917, -7.0926], color: '#ff6b6b', region: 'المنظم 🏆', link: '#' };
+        const broadcasters = [
+            { name: 'A1', country: 'بلغاريا', coords: [42.7339, 25.4858], color: '#9c27b0', region: 'وسط/شرق', link: 'https://a1.bg/' },
+            { name: 'Arena Sport', country: 'صربيا، البوسنة، الجبل الأسود', coords: [44.0165, 21.0059], color: '#9c27b0', region: 'وسط/شرق', link: 'https://www.arenasport.com/' },
+            { name: 'Cablenet', country: 'قبرص', coords: [35.1264, 33.4299], color: '#4caf50', region: 'جنوب', link: 'https://www.cablenet.com.cy/' },
+            { name: 'Channel 4', country: 'المملكة المتحدة', coords: [55.3781, -3.4360], color: '#2196f3', region: 'غرب', link: 'https://www.channel4.com/' },
+            { name: 'ERT', country: 'اليونان', coords: [39.0742, 21.8243], color: '#4caf50', region: 'جنوب', link: 'https://www.ert.gr/' },
+            { name: 'Movistar', country: 'إسبانيا', coords: [40.4637, -3.7492], color: '#4caf50', region: 'جنوب', link: 'https://www.movistar.es/' },
+            { name: 'RMC', country: 'فرنسا', coords: [46.2276, 2.2137], color: '#2196f3', region: 'غرب', link: 'https://rmc.bfmtv.com/' },
+            { name: 'Sport 5', country: 'إسرائيل', coords: [31.0461, 34.8516], color: '#4caf50', region: 'جنوب', link: 'https://sport5.co.il/' },
+            { name: 'Sport Italia', country: 'إيطاليا', coords: [41.8719, 12.5674], color: '#4caf50', region: 'جنوب', link: 'https://www.sportitalia.it/' },
+            { name: 'Sport TV', country: 'البرتغال', coords: [39.3999, -8.2245], color: '#4caf50', region: 'جنوب', link: 'https://www.sporttv.pt/' },
+            { name: 'VGTV', country: 'النرويج', coords: [60.4720, 8.4689], color: '#ff9800', region: 'شمال', link: 'https://www.vgtv.no/' },
+            { name: 'Ziggo Sport', country: 'هولندا', coords: [52.1326, 5.2913], color: '#ff9800', region: 'شمال', link: 'https://www.ziggosport.nl/' }
+        ];
+
+        const allPoints = [moroccoHost, ...broadcasters];
+        const markers = [];
+        const labels = [];
+
+        // إضافة النقاط والنصوص
+        allPoints.forEach((point) => {
+            let marker, label;
+            
+            if (point.name === 'المغرب') {
+                marker = L.marker(point.coords, {
+                    icon: L.icon({
+                        iconUrl: 'https://kenyafootballdata.com/images/uploads/tournaments/logos/uftn0013.png',
+                        iconSize: [40, 50],
+                        iconAnchor: [20, 50],
+                        popupAnchor: [0, -50]
+                    })
+                }).addTo(map);
+                
+                label = L.marker(point.coords, {
+                    icon: L.divIcon({
+                        className: 'morocco-logo',
+                        html: `<div style="color: ${point.color}; font-weight: 900; font-size: 13px;">${point.name}</div>`,
+                        iconSize: [100, 25],
+                        iconAnchor: [50, -30]
+                    })
+                }).addTo(map);
+            } else {
+                marker = L.circleMarker(point.coords, {
+                    radius: 12, fillColor: point.color, color: 'white', weight: 3, fillOpacity: 0.9
+                }).addTo(map);
+
+                label = L.marker(point.coords, {
+                    icon: L.divIcon({
+                        className: 'channel-label',
+                        html: `<div style="color: ${point.color}; font-weight: 900;">${point.name}</div>`,
+                        iconSize: [90, 20],
+                        iconAnchor: [45, -10]
+                    })
+                }).addTo(map);
+            }
+
+            marker.bindPopup(`
+                <div style="text-align: right; direction: rtl; font-family: 'Cairo', sans-serif;">
+                    <h4 style="color: ${point.color}; text-align: center; margin: 0 0 15px 0; font-weight: 900;">${point.name}</h4>
+                    ${point.name === 'المغرب' ? 
+                        `<img src="https://kenyafootballdata.com/images/uploads/tournaments/logos/uftn0013.png" style="width: 80px; border-radius: 10px; display: block; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">` : ''}
+                    <p><strong>الدولة:</strong> ${point.country}</p>
+                    <p><strong>${point.name === 'المغرب' ? 'الدور:' : 'المنطقة:'}</strong> <span style="color: ${point.color};">${point.region}</span></p>
+                    ${point.link !== '#' ? `<p><a href="${point.link}" target="_blank" style="color: #ffd93d; font-weight: bold;">🌐 الموقع الرسمي</a></p>` : ''}
+                </div>
+            `);
+
+            markers.push({ marker, label, ...point });
+        });
+
+        // قائمة منسدلة لخلفيات الخريطة
+        const mapLayersList = document.getElementById('mapLayersList');
+        Object.entries(baseMaps).forEach(([name, layer]) => {
+            const item = document.createElement('div');
+            item.className = 'layer-item';
+            item.innerHTML = `<span class="layer-icon">${name.split(' ')[0]}</span>${name}`;
+            item.onclick = () => {
+                map.removeLayer(currentBaseLayer);
+                currentBaseLayer = layer;
+                map.addLayer(layer);
+                document.getElementById('mapLayersList').classList.remove('show');
+                // تحديث حالة أيقونة التبديل
+                isEsri = name.includes('ESRI');
+                document.querySelector('.layer-toggle').innerHTML = isEsri ? '🗺️' : '🛰️';
+            };
+            mapLayersList.appendChild(item);
+        });
+
+        // القائمة المنسدلة للقنوات
+        const broadcastersList = document.getElementById('broadcastersList');
+        allPoints.forEach(point => {
+            const item = document.createElement('div');
+            item.className = 'broadcaster-item';
+            item.innerHTML = `
+                <div>
+                    <div class="broadcaster-name" style="color: ${point.color};">${point.name}</div>
+                    <div class="broadcaster-info">${point.country} • ${point.region}</div>
+                </div>
+                ${point.link !== '#' ? `<a href="${point.link}" target="_blank" class="broadcaster-link">زيارة</a>` : '<span style="color: #ff6b6b; font-weight: 700;">🏆 المنظم</span>'}
+            `;
+            item.onclick = (e) => {
+                if (!e.target.closest('a')) {
+                    const data = markers.find(m => m.name === point.name);
+                    map.setView(data.marker.getLatLng(), 8);
+                    data.marker.openPopup();
+                }
+            };
+            broadcastersList.appendChild(item);
+        });
+
+        // التحكم في القوائم المنسدلة
+        document.getElementById('broadcastersDropdown').onclick = () => {
+            document.getElementById('broadcastersList').classList.toggle('show');
+        };
+
+        document.getElementById('mapLayersDropdown').onclick = () => {
+            document.getElementById('mapLayersList').classList.toggle('show');
+        };
+
+        // إغلاق القوائم عند النقر خارجها
+        document.onclick = (e) => {
+            const broadcastersDropdown = document.getElementById('broadcastersDropdown');
+            const mapLayersDropdown = document.getElementById('mapLayersDropdown');
+            
+            if (!broadcastersDropdown.contains(e.target)) {
+                document.getElementById('broadcastersList').classList.remove('show');
+            }
+            if (!mapLayersDropdown.contains(e.target)) {
+                document.getElementById('mapLayersList').classList.remove('show');
+            }
+        };
+
+        // البحث
+        document.getElementById('searchInput').oninput = (e) => {
+            const query = e.target.value.toLowerCase();
+            let visible = [];
+            
+            markers.forEach(({ marker, label, name, country }) => {
+                const match = name.toLowerCase().includes(query) || country.toLowerCase().includes(query);
+                if (match) {
+                    map.addLayer(marker);
+                    map.addLayer(label);
+                    visible.push(marker);
+                } else {
+                    map.removeLayer(marker);
+                    map.removeLayer(label);
+                }
+            });
+
+            const listItems = document.querySelectorAll('.broadcaster-item');
+            listItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+
+            const infoBox = document.getElementById('infoBox');
+            if (query && visible.length) {
+                infoBox.style.display = 'block';
+                infoBox.innerHTML = `✅ ${visible.length} نتيجة "${e.target.value}"`;
+                map.fitBounds(visible.map(m => m.marker.getLatLng()), { padding: [30, 30] });
+            } else if (query) {
+                infoBox.style.display = 'block';
+                infoBox.innerHTML = '❌ لا توجد نتائج';
+            } else {
+                infoBox.style.display = 'none';
+                markers.forEach(({ marker, label }) => {
+                    map.addLayer(marker);
+                    map.addLayer(label);
+                });
+            }
+        };
+
+        // التركيز الأولي
+        setTimeout(() => map.fitBounds(markers.map(m => m.marker.getLatLng()), { padding: [50, 50] }), 1000);
+    </script>
+
+    <!-- الفوتر -->
+   
+</body>
+</html>
